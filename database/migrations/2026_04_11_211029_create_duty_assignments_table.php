@@ -1,0 +1,41 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('duty_positions', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('office_symbol');
+            $table->boolean('only_one');
+            $table->boolean('senior_only');
+            $table->boolean('is_primary');
+            $table->integer('next_higher_id')->nullable();
+        });
+
+        Schema::create('duty_assignments', function (Blueprint $table) {
+            $table->id();
+            $table->integer('capid');
+            $table->integer('position_id');
+            $table->integer('unit_id');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('duty_assignments');
+        Schema::dropIfExists('duty_positions');
+    }
+};

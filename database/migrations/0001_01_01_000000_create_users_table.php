@@ -12,7 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->integer('capid', false, true)->primary();
+            $table->integer('capid')->primary();
+            $table->enum('rank', [
+                'C/AB', 'C/Amn', 'C/A1C', 'C/SrA',
+                'C/SSgt', 'C/TSgt', 'C/MSgt', 'C/SMSgt', 'C/CMSgt',
+                'C/2d Lt', 'C/1st Lt', 'C/Capt', 'C/Maj', 'C/Lt Col', 'C/Col',
+                'SM',
+                'SSgt', 'TSgt', 'MSgt', 'SMSgt', 'CMSgt',
+                'FO', 'TFO', 'SFO',
+                '2d Lt', '1st Lt', 'Capt', 'Maj', 'Lt Col', 'Col', 'Brig Gen', 'Maj Gen'
+            ]);
             $table->string('first_name');
             $table->string('last_name');
             $table->string('middle_name')->nullable();
