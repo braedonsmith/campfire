@@ -47,6 +47,13 @@ Artisan::command('campfire:ingest {path}', function (String $path) {
                 break;
         }
 
+        $email = $sheet->getCell([28, $rowIndex])->getValue();
+
+        if (array_any($users, fn($user) => $user['email'] === $email)) {
+            $this->error('Skipping user for duplicate email: ' . $rank . ' ' . $first . ' ' . $last);
+            continue;
+        }
+
         $password = Str::password();
 
         $height = intval($sheet->getCell([18, $rowIndex])->getValue());
