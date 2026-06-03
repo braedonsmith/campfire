@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { CalendarClock, Car, Contact, LayoutGrid, ListTodo, RadioTower, UserPen, Users, Wheat } from 'lucide-vue-next';
+import { CalendarClock, Car, LayoutGrid, ListTodo, Network, RadioTower, UserPen, Users, Wheat, Workflow } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -26,7 +26,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Org Chart',
         href: '',
-        icon: Contact
+        icon: Network
     },
     {
         title: 'Kanban Board',
@@ -37,6 +37,11 @@ const mainNavItems: NavItem[] = [
         title: 'Headcounts',
         href: '',
         icon: Users
+    },
+    {
+        title: 'Unit Management',
+        href: '',
+        icon: Workflow
     },
     {
         title: 'User Management',
