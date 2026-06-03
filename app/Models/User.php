@@ -22,6 +22,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
+    protected $primaryKey = 'capid';
+
     /**
      * Get the attributes that should be cast.
      *
