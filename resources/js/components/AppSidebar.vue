@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-vue-next';
+import { CalendarClock, Car, Contact, LayoutGrid, ListTodo, RadioTower, UserPen, Users, Wheat } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -23,18 +23,48 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Org Chart',
+        href: '',
+        icon: Contact
+    },
+    {
+        title: 'Kanban Board',
+        href: '',
+        icon: ListTodo
+    },
+    {
+        title: 'Headcounts',
+        href: '',
+        icon: Users
+    },
+    {
+        title: 'User Management',
+        href: '',
+        icon: UserPen,
+    },
+    {
+        title: 'Schedule Management',
+        href: '',
+        icon: CalendarClock
+    },
+    {
+        title: 'Radio Management',
+        href: '',
+        icon: RadioTower
+    },
+    {
+        title: 'Vehicle Management',
+        href: '',
+        icon: Car
+    }
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
+        title: 'Encampment Website \u2197',
+        href: 'https://kswg.cap.gov/encampment',
+        icon: Wheat,
     },
 ];
 </script>
