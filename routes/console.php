@@ -7,6 +7,45 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
+function getRankOrder(String $rank): int
+{
+    return match ($rank) {
+        'C/AB' => 0,
+        'C/Amn' => 1,
+        'C/A1C' => 2,
+        'C/SrA' => 3,
+        'C/SSgt' => 4,
+        'C/TSgt' => 5,
+        'C/MSgt' => 6,
+        'C/SMSgt' => 7,
+        'C/CMSgt' => 8,
+        'C/2d Lt' => 9,
+        'C/1st Lt' => 10,
+        'C/Capt' => 11,
+        'C/Maj' => 12,
+        'C/Lt Col' => 13,
+        'C/Col' => 14,
+        'SM' => 15,
+        'SSgt' => 16,
+        'TSgt' => 17,
+        'MSgt' => 18,
+        'SMSgt' => 19,
+        'CMSgt' => 20,
+        'FO' => 21,
+        'TFO' => 22,
+        'SFO' => 23,
+        '2d Lt' => 24,
+        '1st Lt' => 25,
+        'Capt' => 26,
+        'Maj' => 27,
+        'Lt Col' => 28,
+        'Col' => 29,
+        'Brig Gen' => 30,
+        'Maj Gen' => 31,
+        default => -1
+    };
+}
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
@@ -23,37 +62,18 @@ Artisan::command('campfire:ingest {path}', function (String $path) {
         $rank = $sheet->getCell([6, $rowIndex])->getValue();
 
         // Normalize rank abbreviations to USAF standard
-        switch ($rank) {
-            case 'CADET':
-                $rank = 'C/AB';
-                break;
-            case 'C/2dLt':
-                $rank = 'C/2d Lt';
-                break;
-            case 'C/1stLt':
-                $rank = 'C/1st Lt';
-                break;
-            case 'C/LtCol':
-                $rank = 'C/Lt Col';
-                break;
-            case '2dLt':
-                $rank = '2d Lt';
-                break;
-            case '1stLt':
-                $rank = '1st Lt';
-                break;
-            case 'LtCol':
-                $rank = 'Lt Col';
-                break;
-        }
+        $rank = match ($rank) {
+            'CADET' => 'C/AB',
+            'C/2dLt' => 'C/2d Lt',
+            'C/1stLt' => 'C/1st Lt',
+            'C/LtCol' => 'C/Lt Col',
+            '2dLt' => '2d Lt',
+            '1stLt' => '1st Lt',
+            'LtCol' => 'Lt Col',
+            default => $rank
+        };
 
         $email = $sheet->getCell([28, $rowIndex])->getValue();
-
-        if (array_any($users, fn($user) => $user['email'] === $email)) {
-            $this->error('Skipping user for duplicate email: ' . $rank . ' ' . $first . ' ' . $last);
-            continue;
-        }
-
         $password = Str::password();
 
         $height = intval($sheet->getCell([18, $rowIndex])->getValue());
@@ -149,9 +169,32 @@ Artisan::command('campfire:ingest {path}', function (String $path) {
             'registered_by' => $sheet->getCell([88, $rowIndex])->getValue()
         ];
 
+        $i;
+
+        // Check for duplicates
+        for ($i = 0; $i < count($users); $i++) {
+            if ($users[$i]['email'] === $email) {
+                $incoming_rank_order = getRankOrder($user['rank']);
+                $existing_rank_order = getRankOrder($users[$i]['rank']);
+
+                // Prefer higher ranks first, then time in service
+                if ($incoming_rank_order > $existing_rank_order || ($incoming_rank_order == $existing_rank_order && $users[$i]['capid'] > $users[$i]['capid'])) {
+                    $this->error('Duplicate email: replacing user ' . $users[$i]['rank'] . ' ' . $users[$i]['first_name'] . ' ' . $users[$i]['last_name'] . " with user $rank $first $last");
+                    $users[$i] = $user;
+
+                    break;
+                }
+            }
+        }
+
+        // If the loop stopped early, it must have found a duplicate email and replaced, therefore skip this user
+        if ($i < count($users)) {
+            continue;
+        }
+
         array_push($users, $user);
 
-        $this->line('Created user: ' . $rank . ' ' . $first . ' ' . $last . ' with password ' . $password);
+        $this->line("Created user: $rank $first $last with password $password");
     }
 
     User::upsert($users, ['capid'], [
