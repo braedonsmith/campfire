@@ -30,7 +30,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Kanban Board',
-        href: '',
+        href: '/kanban',
         icon: ListTodo
     },
     {

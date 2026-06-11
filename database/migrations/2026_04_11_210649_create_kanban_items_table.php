@@ -16,9 +16,10 @@ return new class extends Migration
             $table->string('key')->unique();
             $table->string('title');
             $table->string('description');
+            $table->string('category')->nullable();
             $table->enum('priority', ['P5', 'P4', 'P3', 'P2', 'P1']);
             $table->enum('status', ['not started', 'in progress', 'complete']);
-            $table->integer('assignee_capid');
+            $table->integer('assignee_capid')->nullable();
             $table->integer('creator_capid');
             $table->dateTime('due_by');
             $table->timestamps();
