@@ -13,8 +13,7 @@ Route::middleware(['auth', 'verified', CheckLoginAllowed::class])->group(functio
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
 
     Route::controller(KanbanController::class)->group(function() {
-        Route::get('/kanban', 'listTasks');
-        Route::post('/kanban', 'store');
+        Route::get('/kanban', 'listPage');
     });
 });
 

@@ -3,24 +3,38 @@
 namespace App\Http\Controllers;
 
 use App\Models\KanbanItem;
+use App\Rules\Timestamp;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class KanbanController extends Controller
 {
-    public function listTasks(): Response
+    public function listPage(): Response
     {
         return Inertia::render('kanban/TaskList', [
-            'tasks' => KanbanItem::with('assignee')->get()
+            'tasks' => KanbanItem::with(['assignee', 'creator'])->get()
         ]);
     }
 
-    public function store(Request $request): Response
+    public function getAll(): JsonResponse
     {
-        $task = new KanbanItem;
+        return response()->json(KanbanItem::all(), 200);
+    }
 
-        $code = match ($request->category) {
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string'],
+            'description' => ['required', 'string'],
+            'category' => ['string', Rule::in('Executive Staff', 'Administration', 'Chaplain', 'Curriculum and Plans', 'Logistics', 'Operations', 'Public Affairs', 'Safety')],
+            'priority' => ['required', 'string', Rule::in('P1', 'P2', 'P3', 'P4', 'P5')],
+            'dueBy' => ['required', 'string', new Timestamp()]
+        ]);
+
+        $code = match ($validated['category']) {
             'Executive Staff' => 'CC',
             'Administration' => 'DA',
             'Chaplain' => 'HC',
@@ -33,19 +47,19 @@ class KanbanController extends Controller
 
         $key = KanbanItem::all()->count() + 1;
 
-        $task->key = "$code-$key";
-        $task->title = $request->title;
-        $task->description = $request->description;
-        $task->category = $request->category;
-        $task->priority = $request->priority;
-        $task->status = 'not started';
-        $task->creator_capid = intval($request->session()->get('capid'));
-        $task->due_by = $request->dueBy;
+        $data = [
+            'key' => "$code-$key",
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'category' => $validated['category'],
+            'priority' => $validated['priority'],
+            'status'=> 'not started',
+            'creator_capid' => (int) $request->session()->get('capid'),
+            'due_by' => $validated['dueBy'],
+        ];
 
-        $task->save();
+        $task = KanbanItem::create($data);
 
-        return Inertia::render('kanban/TaskList', [
-            'tasks' => KanbanItem::with('assignee')->get()
-        ]);
+        return response()->json($task, 201);
     }
 }

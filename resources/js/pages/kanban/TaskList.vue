@@ -1,23 +1,28 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { User } from '@/types';
-import { useForm, Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { getLocalTimeZone, now } from '@internationalized/date';
 import { toTypedSchema } from '@vee-validate/zod';
-import { useForm as useVeeForm, Field as VeeField } from 'vee-validate';
 import { ListPlus } from 'lucide-vue-next';
+import { useForm as useVeeForm, Field as VeeField } from 'vee-validate';
+import { ref } from 'vue';
 import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { DatetimePicker } from '@/components/ui/datetime-picker';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { ref } from 'vue';
-import { DatetimePicker } from '@/components/ui/datetime-picker';
-import { getLocalTimeZone, now } from '@internationalized/date';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import client from '@/lib/http-client';
 
 const props = defineProps(['tasks']);
+
+const offices = ['Executive Staff', 'Administration', 'Chaplain', 'Curriculum and Plans', 'Logistics', 'Operations', 'Public Affairs', 'Safety'];
+const priorities = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 defineOptions({
     layout: {
@@ -30,20 +35,12 @@ defineOptions({
     },
 });
 
-function formatName(member?: User) {
-    if (!member) {
-        return "Unassigned";
-    }
-
-    return `${member.rank} ${member.first_name} ${member.last_name}`;
-}
-
 const validationSchema = toTypedSchema(
     z.object({
         title: z.string().nonempty(),
         description: z.string().optional(),
-        category: z.string().optional(),
-        priority: z.enum(['P1', 'P2', 'P3', 'P4', 'P5']),
+        category: z.enum(offices).optional(),
+        priority: z.enum(priorities),
         dueBy: z.iso.datetime()
     })
 );
@@ -53,42 +50,27 @@ const { handleSubmit, resetForm } = useVeeForm({
     initialValues: {
         title: '',
         description: '',
-        category: '',
+        category: undefined,
         priority: 'P3',
         dueBy: now(getLocalTimeZone()).toAbsoluteString()
     }
 });
 
-const form = useForm({
-    title: '',
-    description: '',
-    category: '',
-    priority: 'P3',
-    dueBy: ''
-});
+const onSubmit = handleSubmit(async (data) => {
+    const form = {
+        title: data.title,
+        description: data.description ?? "",
+        category: data.category ?? "",
+        priority: data.priority,
+        dueBy: new Date(data.dueBy).toISOString()
+    };
 
-const onSubmit = handleSubmit((data) => {
-    console.log(JSON.stringify(data)); // DEBUG
-
-    form.title = data.title;
-    form.description = data.description ?? "";
-    form.category = data.category ?? "";
-    form.priority = data.priority;
-    form.dueBy = data.dueBy;
-
-    form.post('', {
-        onError: (serverErrors) => {
-            // TODO
-            console.log(JSON.stringify(serverErrors));
-        }
-    });
+    await client.post('kanban', form)
+        .then((res) => console.log(JSON.stringify(res.data)))
+        .catch((err) => router.flash('toast', `Failed to create Kanban item: ${err}`));
 
     resetForm();
 });
-
-const offices = ['Executive Staff', 'Administration', 'Chaplain', 'Curriculum and Plans', 'Logistics', 'Operations', 'Public Affairs', 'Safety'];
-
-const priorities = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 const isOpen = ref(false);
 
