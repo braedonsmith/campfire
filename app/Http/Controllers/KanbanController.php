@@ -45,6 +45,7 @@ class KanbanController extends Controller
             'Safety' => 'SE'
         };
 
+        // TODO get the count of items matching category to allow for sequential assignment
         $key = KanbanItem::all()->count() + 1;
 
         $data = [
@@ -54,7 +55,7 @@ class KanbanController extends Controller
             'category' => $validated['category'],
             'priority' => $validated['priority'],
             'status'=> 'not started',
-            'creator_capid' => (int) $request->session()->get('capid'),
+            'creator_capid' => auth()->user()['capid'],
             'due_by' => $validated['dueBy'],
         ];
 
