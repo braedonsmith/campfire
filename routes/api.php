@@ -9,5 +9,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::controller(KanbanController::class)->group(function() {
         Route::get('/kanban', 'getAll');
         Route::post('/kanban', 'store');
+        Route::patch('/kanban/{kanbanItem}', 'update');
     });
 });

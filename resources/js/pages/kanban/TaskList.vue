@@ -7,6 +7,8 @@ import { useForm as useVeeForm, Field as VeeField } from 'vee-validate';
 import { ref } from 'vue';
 import { z } from 'zod';
 
+import KanbanCard from '@/components/KanbanCard.vue';
+import KanbanColumn from '@/components/KanbanColumn.vue';
 import { Button } from '@/components/ui/button';
 import { DatetimePicker } from '@/components/ui/datetime-picker';
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -16,10 +18,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { formatName, formatRelativeTime, formatTimestamp } from '@/lib/format';
 import client from '@/lib/http-client';
+import { DraggableChangeEvent, KanbanItem } from '@/types';
 
-const props = defineProps(['tasks']);
+type TaskListProps = {
+    tasks: KanbanItem[]
+};
+
+const props = defineProps<TaskListProps>();
 
 const offices = ['Executive Staff', 'Administration', 'Chaplain', 'Curriculum and Plans', 'Logistics', 'Operations', 'Public Affairs', 'Safety'];
 const priorities = ['P1', 'P2', 'P3', 'P4', 'P5'];
@@ -66,46 +72,35 @@ const onSubmit = handleSubmit(async (data) => {
     };
 
     await client.post('kanban', form)
-        .then((res) => props.tasks.push(res.data))
-        .catch((err) => router.flash('toast', `Failed to create Kanban item: ${err}`));
+        .then((res) => notStarted.value.push(res.data))
+        .catch((err) => router.flash('toast', `Failed to update Kanban item: ${err}`));
 
     resetForm();
     isOpen.value = false;
 });
 
-const getItemColors = (priority: string) => {
-    switch (priority) {
-        case 'P1':
-            return 'border-red-700 bg-red-300/30 dark:bg-red-950/30';
-        case 'P2':
-            return 'border-orange-500 bg-orange-300/30 dark:bg-orange-950/30';
-        default:
-        case 'P3':
-            return 'border-yellow-500 bg-yellow-200/30 dark:bg-yellow-950/30';
-        case 'P4':
-            return 'border-green-700 bg-green-200/30 dark:bg-green-950/30';
-        case 'P5':
-            return 'border-blue-700 bg-blue-300/30 dark:bg-blue-950/30';
+const isOpen = ref(false);
+
+const notStarted = ref(props.tasks?.filter((task: KanbanItem) => task.status === 'not started'));
+const inProgress = ref(props.tasks?.filter((task: KanbanItem) => task.status === 'in progress'));
+const complete = ref(props.tasks?.filter((task: KanbanItem) => task.status === 'complete'));
+
+const handleColumnChange = ({event, status}: DraggableChangeEvent<KanbanItem>) => {
+    if (!event.added) {
+        return;
     }
+
+    const task = event.added.element;
+    task.status = status;
+
+    onTaskMoved(task);
 };
 
-const getTextColors = (priority: string) => {
-    switch (priority) {
-        case 'P1':
-            return 'text-red-700';
-        case 'P2':
-            return 'text-orange-500';
-        default:
-        case 'P3':
-            return 'text-yellow-500';
-        case 'P4':
-            return 'text-green-700';
-        case 'P5':
-            return 'text-blue-700';
-    }
+const onTaskMoved = async (task: KanbanItem) => {
+    await client.patch(`kanban/${task.id}`, { status: task.status })
+        //.then((res) => {})
+        .catch((err) => router.flash('toast', `Failed to create Kanban item: ${err}`));
 }
-
-const isOpen = ref(false);
 
 </script>
 
@@ -203,35 +198,21 @@ const isOpen = ref(false);
         </div>
         <TabsContent value="All">
             <div class="flex justify-evenly">
-                <ScrollArea class="w-3/10 min-h-[calc(85dvh)] rounded-md border">
-                    <h3 class="m-4 leading-none">Not Started</h3>
-                    <div v-for="task in props.tasks" :class="[
-                        'border rounded-md flex flex-col m-2 p-2',
-                        getItemColors(task.priority)
-                    ]">
-                        <span class="mb-2"><strong>{{ task.key }}</strong> &MediumSpace; {{ task.title }} &MediumSpace; <strong :class="[getTextColors(task.priority)]">{{ task.priority }}</strong></span>
-                        <table>
-                            <tr>
-                                <td>Creator</td>
-                                <td>{{ formatName(task.creator) }}</td>
-                            </tr>
-                            <tr>
-                                <td>Assignee</td>
-                                <td>{{ task.assignee ? formatName(task.assignee) : 'Not Assigned' }}</td>
-                            </tr>
-                            <tr>
-                                <td>Due By</td>
-                                <td>{{ formatTimestamp(task.due_by) }} ({{ formatRelativeTime(task.due_by) }})</td>
-                            </tr>
-                        </table>
-                    </div>
-                </ScrollArea>
-                <ScrollArea class="w-3/10 min-h-[calc(85dvh)] rounded-md border">
-                    <h3 class="m-4 leading-none">In Progress</h3>
-                </ScrollArea>
-                <ScrollArea class="w-3/10 min-h-[calc(85dvh)] rounded-md border">
-                    <h3 class="m-4 leading-none">Complete</h3>
-                </ScrollArea>
+                <KanbanColumn class="w-3/10 min-h-[calc(85dvh)] rounded-md border" title="Not Started" status="not started" v-model="notStarted" @task-moved="handleColumnChange">
+                    <template #card="{ task }">
+                        <KanbanCard :task="task" />
+                    </template>
+                </KanbanColumn>
+                <KanbanColumn class="w-3/10 min-h-[calc(85dvh)] rounded-md border" title="In Progress" status="in progress" v-model="inProgress" @task-moved="handleColumnChange">
+                    <template #card="{ task }">
+                        <KanbanCard :task="task" />
+                    </template>
+                </KanbanColumn>
+                <KanbanColumn class="w-3/10 min-h-[calc(85dvh)] rounded-md border" title="Complete" status="complete" v-model="complete" @task-moved="handleColumnChange">
+                    <template #card="{ task }">
+                        <KanbanCard :task="task" />
+                    </template>
+                </KanbanColumn>
             </div>
         </TabsContent>
         <TabsContent v-for="office in offices" :value="office">
@@ -248,8 +229,4 @@ const isOpen = ref(false);
             </div>
         </TabsContent>
     </Tabs>
-
-    <div class="flex w-full justify-end">
-        
-    </div>
 </template>
